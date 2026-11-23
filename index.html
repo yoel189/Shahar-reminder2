@@ -1,0 +1,434 @@
+```html
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA & Mobile Standalone Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="שחר">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#09090b">
+    
+    <!-- Inline SVG App Icon for Home Screen -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2318181b'/><path d='M50 75 C50 75 20 55 20 35 C20 22 32 15 43 22 C47 25 50 30 50 30 C50 30 53 25 57 22 C68 15 80 22 80 35 C80 55 50 75 50 75 Z' fill='%23f43f5e'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2318181b'/><path d='M50 75 C50 75 20 55 20 35 C20 22 32 15 43 22 C47 25 50 30 50 30 C50 30 53 25 57 22 C68 15 80 22 80 35 C80 55 50 75 50 75 Z' fill='%23f43f5e'/></svg>">
+
+    <title>שחר • תזכורת יומית</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Heebo & Inter for clean Hebrew minimalism -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Heebo', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        obsidian: '#09090b',
+                        surface: '#121215',
+                        borderSubtle: '#27272a',
+                        roseAccent: '#f43f5e',
+                    },
+                    animation: {
+                        'heartbeat': 'heartbeat 2.4s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        heartbeat: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '14%': { transform: 'scale(1.12)' },
+                            '28%': { transform: 'scale(1)' },
+                            '42%': { transform: 'scale(1.08)' },
+                            '70%': { transform: 'scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #09090b;
+            color: #fafafa;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            overscroll-behavior-y: none;
+        }
+        /* Subtle safe area padding for notched mobile devices */
+        .safe-area-pt { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+        .safe-area-pb { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+    </style>
+</head>
+<body class="min-h-[100dvh] flex flex-col justify-between px-6 safe-area-pt safe-area-pb antialiased selection:bg-rose-500/30">
+
+    <!-- Top Header: Minimal Date & Permission Status -->
+    <header class="w-full max-w-md mx-auto flex items-center justify-between pt-2">
+        <div class="flex items-center gap-2">
+            <span id="status-dot" class="w-2 h-2 rounded-full bg-zinc-600 transition-colors duration-500"></span>
+            <span id="date-display" class="text-xs font-light tracking-wide text-zinc-400"></span>
+        </div>
+        
+        <button id="notif-perm-btn" onclick="requestNotificationPermission()" class="hidden text-xs text-rose-400/90 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full transition active:scale-95">
+            אפשר התראות
+        </button>
+    </header>
+
+    <!-- Main Center Stage -->
+    <main class="w-full max-w-md mx-auto flex-1 flex flex-col items-center justify-center my-8">
+        
+        <!-- STATE 1: WAITING FOR SCHEDULED TIME -->
+        <section id="view-waiting" class="w-full flex flex-col items-center text-center space-y-8 transition-opacity duration-500">
+            <div class="relative flex items-center justify-center w-24 h-24 rounded-full bg-surface border border-borderSubtle shadow-2xl">
+                <div class="absolute inset-0 rounded-full bg-rose-500/5 animate-pulse-slow"></div>
+                <svg class="w-8 h-8 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </svg>
+            </div>
+
+            <div class="space-y-2.5">
+                <h1 class="text-2xl font-normal tracking-tight text-zinc-100">לשלוח שורה לשחר</h1>
+                <p id="waiting-subtext" class="text-sm font-light text-zinc-400 max-w-[260px] mx-auto leading-relaxed">
+                    התזכורת מתוזמנת להיום בשעה אקראית
+                </p>
+            </div>
+
+            <!-- Subtle Schedule Indicator Pill -->
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-borderSubtle/80 text-xs text-zinc-400 font-light">
+                <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span id="scheduled-time-label">ממתין לשעה...</span>
+            </div>
+        </section>
+
+        <!-- STATE 2: ACTIVE REMINDER (TRIGGERED) -->
+        <section id="view-active" class="hidden w-full flex flex-col items-center text-center space-y-10 transition-opacity duration-500">
+            <!-- Heartbeat Visual Indicator -->
+            <div class="relative flex items-center justify-center w-28 h-28 rounded-full bg-rose-500/10 border border-rose-500/30 shadow-[0_0_50px_-12px_rgba(244,63,94,0.35)]">
+                <svg class="w-11 h-11 text-roseAccent animate-heartbeat" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            </div>
+
+            <div class="space-y-2">
+                <span class="text-xs font-medium tracking-widest uppercase text-rose-400">הגיע הזמן</span>
+                <h2 class="text-2xl font-medium tracking-tight text-white">שלח לשחר שורה משיר</h2>
+            </div>
+
+            <!-- Two Primary Action Buttons -->
+            <div class="w-full space-y-3.5 pt-2">
+                <button onclick="markAsSent()" class="w-full py-4 px-5 rounded-2xl bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-base transition-all duration-200 active:scale-[0.98] shadow-lg shadow-white/5">
+                    שלחתי ולא צריך יותר להזכיר לי
+                </button>
+
+                <button onclick="remindLater()" class="w-full py-4 px-5 rounded-2xl bg-surface hover:bg-zinc-800/80 text-zinc-300 border border-borderSubtle font-normal text-base transition-all duration-200 active:scale-[0.98]">
+                    תזכיר לי שוב מאוחר יותר
+                </button>
+            </div>
+        </section>
+
+        <!-- STATE 3: COMPLETED FOR TODAY -->
+        <section id="view-completed" class="hidden w-full flex flex-col items-center text-center space-y-7 transition-opacity duration-500">
+            <div class="flex items-center justify-center w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <svg class="w-9 h-9 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+
+            <div class="space-y-2">
+                <h2 class="text-2xl font-normal tracking-tight text-zinc-100">נשלח להיום</h2>
+                <p class="text-sm font-light text-zinc-400 max-w-[250px] mx-auto leading-relaxed">
+                    התזכורת הבאה תתאפס אוטומטית מחר לשעה אקראית חדשה.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer: Subtle Utility Controls & Toast Message -->
+    <footer class="w-full max-w-md mx-auto flex flex-col items-center space-y-4 pb-2">
+        <!-- Toast Banner -->
+        <div id="toast" class="opacity-0 pointer-events-none transition-opacity duration-300 text-xs text-zinc-300 bg-zinc-800/90 border border-zinc-700/80 px-4 py-2 rounded-full">
+            הודעה
+        </div>
+
+        <div class="flex items-center justify-center gap-6 text-xs text-zinc-500">
+            <button onclick="triggerHeartbeatVibration(true)" class="flex items-center gap-1.5 py-2 px-3 rounded-xl hover:text-zinc-300 hover:bg-surface transition active:scale-95">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 10v4"/><path d="M6 7v10"/><path d="M10 4v16"/><path d="M14 7v10"/><path d="M18 10v4"/><path d="M22 12v0"/>
+                </svg>
+                <span>בדיקת רטט</span>
+            </button>
+
+            <span class="text-zinc-800">•</span>
+
+            <button onclick="simulateTriggerNow()" class="py-2 px-3 rounded-xl hover:text-zinc-300 hover:bg-surface transition active:scale-95">
+                הפעל תזכורת עכשיו
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * State & Storage Management
+         * Key structure in localStorage:
+         * {
+         *   date: "YYYY-MM-DD",
+         *   targetTimestamp: number,
+         *   status: "waiting" | "active" | "completed"
+         * }
+         */
+        const STORAGE_KEY = 'shachar_daily_reminder_v1';
+        
+        // Romantic Heartbeat Vibration Pattern (ms): lub-dub ... lub-dub ... lub-dub
+        const HEARTBEAT_PATTERN = [110, 90, 220, 450, 110, 90, 220, 450, 110, 90, 260];
+        
+        let appState = null;
+        let checkInterval = null;
+        let repeatVibrationInterval = null;
+
+        // Returns local YYYY-MM-DD string
+        function getTodayDateString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Generates a random timestamp later today (between 09:30 and 21:30, or later if already past)
+        function generateRandomTimestampToday(isSnooze = false) {
+            const now = new Date();
+            const nowMs = now.getTime();
+
+            if (isSnooze) {
+                // Reschedule randomly between 25 and 90 minutes from now (capped at 22:45 tonight)
+                const minDelayMs = 25 * 60 * 1000;
+                const maxDelayMs = 90 * 60 * 1000;
+                const randomDelay = Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
+                
+                const endOfEvening = new Date(now);
+                endOfEvening.setHours(22, 45, 0, 0);
+                
+                const proposed = nowMs + randomDelay;
+                return proposed < endOfEvening.getTime() ? proposed : nowMs + (15 * 60 * 1000);
+            }
+
+            // Initial daily random time between 09:30 and 21:30
+            const startWindow = new Date(now);
+            startWindow.setHours(9, 30, 0, 0);
+
+            const endWindow = new Date(now);
+            endWindow.setHours(21, 30, 0, 0);
+
+            // If user opens the app after 21:30 for the first time today, schedule within 10-45 mins
+            if (nowMs >= endWindow.getTime()) {
+                const fallbackDelay = (Math.floor(Math.random() * 35) + 10) * 60 * 1000;
+                return nowMs + fallbackDelay;
+            }
+
+            // Ensure the random time is in the future relative to right now
+            const effectiveStart = Math.max(nowMs + (5 * 60 * 1000), startWindow.getTime());
+            const effectiveEnd = Math.max(effectiveStart + (15 * 60 * 1000), endWindow.getTime());
+
+            return Math.floor(Math.random() * (effectiveEnd - effectiveStart + 1)) + effectiveStart;
+        }
+
+        // Load or initialize daily state
+        function loadOrInitState() {
+            const today = getTodayDateString();
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && parsed.date === today) {
+                        appState = parsed;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed reading localStorage:', e);
+            }
+
+            // New day or first launch: generate fresh random schedule
+            appState = {
+                date: today,
+                targetTimestamp: generateRandomTimestampToday(false),
+                status: 'waiting'
+            };
+            saveState();
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error('Failed saving localStorage:', e);
+            }
+        }
+
+        // Format HH:MM in 24-hour Hebrew locale
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Format readable Hebrew date
+        function formatHebrewDate() {
+            const now = new Date();
+            return now.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        // Show subtle non-blocking toast message
+        let toastTimeout = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 3000);
+        }
+
+        // Trigger custom heartbeat vibration
+        function triggerHeartbeatVibration(isManualTest = false) {
+            if ('vibrate' in navigator) {
+                try {
+                    navigator.vibrate(HEARTBEAT_PATTERN);
+                    if (isManualTest) {
+                        showToast('רטט דופק הופעל');
+                    }
+                } catch (e) {
+                    if (isManualTest) showToast('המכשיר חסם את הרטט');
+                }
+            } else if (isManualTest) {
+                showToast('רטט אינו נתמך בדפדפן זה');
+            }
+        }
+
+        // Browser Notification Handling
+        function checkNotificationPermissionUI() {
+            const btn = document.getElementById('notif-perm-btn');
+            if ('Notification' in window && Notification.permission === 'default') {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                showToast('הדפדפן אינו תומך בהתראות');
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                checkNotificationPermissionUI();
+                if (permission === 'granted') {
+                    showToast('התראות הופעלו בהצלחה');
+                }
+            });
+        }
+
+        function sendSystemNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const notif = new Notification('תזכורת לשחר ❤️', {
+                        body: 'הגיע הזמן לשלוח לשחר שורה רומנטית משיר.',
+                        vibrate: HEARTBEAT_PATTERN,
+                        tag: 'shachar-reminder',
+                        renotify: true
+                    });
+                    notif.onclick = () => {
+                        window.focus();
+                        notif.close();
+                    };
+                } catch (e) {
+                    console.warn('Notification display fallback:', e);
+                }
+            }
+        }
+
+        // Transition to Active Reminder State
+        function activateReminder() {
+            if (appState.status !== 'active') {
+                appState.status = 'active';
+                saveState();
+            }
+            
+            renderUI();
+            triggerHeartbeatVibration(false);
+            sendSystemNotification();
+
+            // Gentle periodic vibration reminder every 45 seconds while active & screen open
+            clearInterval(repeatVibrationInterval);
+            repeatVibrationInterval = setInterval(() => {
+                if (appState.status === 'active') {
+                    triggerHeartbeatVibration(false);
+                } else {
+                    clearInterval(repeatVibrationInterval);
+                }
+            }, 45000);
+        }
+
+        // User Action 1: Sent, stop reminding today
+        function markAsSent() {
+            clearInterval(repeatVibrationInterval);
+            if ('vibrate' in navigator) navigator.vibrate(40); // Subtle confirmation tap
+            
+            appState.status = 'completed';
+            saveState();
+            renderUI();
+            showToast('איזה כיף, התזכורת להיום הושלמה');
+        }
+
+        // User Action 2: Remind again later today
+        function remindLater() {
+            clearInterval(repeatVibrationInterval);
+            if ('vibrate' in navigator) navigator.vibrate(40);
+
+            appState.status = 'waiting';
+            appState.targetTimestamp = generateRandomTimestampToday(true);
+            saveState();
+            renderUI();
+            showToast(`נתזכר שוב בשעה ${formatTime(appState.targetTimestamp)}`);
+        }
+
+        // Manual trigger button for immediate testing
+        function simulateTriggerNow() {
+            appState.targetTimestamp = Date.now();
+            activateReminder();
+        }
+
+        // Render UI based on current state
+        function renderUI() {
+            const viewWaiting = document.getElementById('view-waiting');
+            const viewActive = document.getElementById('view-active');
+            const viewCompleted = document.getElementById('view-completed');
+            const statusDot = document.getElementById('status-dot');
+            const scheduledLabel = document.getElementById('scheduled-time-label');
+
+            document.getElementById('date-display').textContent = formatHebrewDate();
+
+            viewWaiting.classList.add('hidden');
+            viewActive.classList.add('hidden');
+            viewCompleted.classList.add('hidden');
+
+            if (appState.status === 'waiting') {
+                viewWaiting.classList.remove('hidden');
+                statusDot.className = 'w-2 h-2 rounded-full bg-amber-400/80 transition-colors duration-500';
+ 
